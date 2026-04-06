@@ -617,21 +617,21 @@ MIT License — see [LICENSE](LICENSE) file.
 
 ## 🙋 Support
 
-- **Issues & Bugs**: [GitHub Issues](https://github.com/your-org/graph-foundation-model/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/graph-foundation-model/discussions)
-- **Email**: sakthivelrajkumar2@gmail.com
-- **Documentation**: [Full Docs](https://graph-foundation.readthedocs.io)
+- Issues & Bugs: https://github.com/sakthi2006-creater/graph-foundation-model/issues  
+- Discussions: https://github.com/sakthi2006-creater/graph-foundation-model/discussions  
+- Email: sakthivelrajkumar2@gmail.com  
+- Documentation: https://github.com/sakthi2006-creater/graph-foundation-model  
 
 ---
 
-## 📖 Citation
+## 📄 Citation
 
 If you use this code in your research, please cite:
 
 ```bibtex
 @software{graph_foundation_2026,
   title = {Graph Foundation Model for Cross-Domain Link Prediction},
-  author = {Sakthivel Rajkumar},
+  author = {Sakthivel R},
   year = {2026},
   url = {https://github.com/sakthi2006-creater/graph-foundation-model}
 }
