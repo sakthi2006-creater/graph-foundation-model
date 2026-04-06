@@ -24,6 +24,7 @@ A comprehensive end-to-end system for training graph neural networks that transf
 ## ✨ Features
 
 ### Core ML Capabilities
+
 - **🎯 Cross-Domain Learning**: Pretrain on 5 source domains (Cora, PubMed, CiteSeer, Karate Club, Amazon Computers)
 - **🔗 Link Prediction**: Predict missing edges in unseen target domains (Amazon Photo)
 - **🎓 Meta-Learning**: Model-Agnostic Meta-Learning (MAML) for rapid task adaptation
@@ -32,6 +33,7 @@ A comprehensive end-to-end system for training graph neural networks that transf
 - **📊 Masked Edge Pretraining**: Self-supervised pretraining objective (20% edge masking)
 
 ### Production Features
+
 - **⚡ Mixed Precision Training**: Faster training with torch.cuda.amp
 - **💾 Gradient Accumulation**: Effective batch size up to 2048+
 - **📈 Experiment Tracking**: Full Weights & Biases integration + CSV fallback
@@ -42,6 +44,7 @@ A comprehensive end-to-end system for training graph neural networks that transf
 - **🧪 Unit + Integration Tests**: Full test coverage (pytest)
 
 ### Web Interfaces
+
 - **📊 Streamlit Dashboard**: 5-page interactive web app for exploration & visualization
 - **⚡ FastAPI Backend**: High-performance REST API with async endpoints
 - **🎨 Next.js Frontend**: Modern React UI with TailwindCSS + Framer Motion
@@ -52,9 +55,11 @@ A comprehensive end-to-end system for training graph neural networks that transf
 ## 🎯 Problem Overview
 
 ### Problem Statement
+
 Given multiple labeled training graphs from different domains, learn a transferable graph representation that can predict missing links in an unseen target domain, using only 50 labeled examples.
 
 ### Learning Pipeline
+
 ```
 Source Domains (5)          Pretraining              Meta-Learning           Few-Shot Fine-Tuning
 ┌─────────────┐            ┌───────────────────┐    ┌──────────────────┐    ┌──────────────────┐
@@ -73,16 +78,19 @@ Source Domains (5)          Pretraining              Meta-Learning           Few
 ### Key Concepts
 
 **1. Masked Edge Prediction (Pretraining)**
+
 - Randomly mask 20% of edges during training
 - Model learns to predict masked edges
 - Self-supervised objective = no label annotation needed
 
 **2. MAML (Model-Agnostic Meta-Learning)**
+
 - **Inner loop**: Task-specific gradient updates (K=5 steps)
 - **Outer loop**: Meta-gradient updates across all tasks
 - **First-order fallback**: If memory exceeds limit, use simplified version
 
 **3. Few-Shot Adaptation**
+
 - Use adapter module between encoder and link predictor
 - Only train adapter weights (encoder frozen)
 - Enables rapid transfer with minimal data
@@ -128,6 +136,7 @@ python -m src.training.pretrain.main \
 ```
 
 Expected output:
+
 ```
 [PRETRAIN] Epoch 1/5 | Loss: 0.523 | Val Loss: 0.489
 [PRETRAIN] Epoch 2/5 | Loss: 0.456 | Val Loss: 0.421
@@ -162,16 +171,19 @@ python -m src.evaluation.evaluator --config config.yaml
 ### 7. Launch Web Interfaces
 
 **Streamlit Dashboard** (localhost:8501)
+
 ```bash
 streamlit run src/streamlit_app/app.py
 ```
 
 **FastAPI Backend** (localhost:8000)
+
 ```bash
 python -m uvicorn src.backend.app:app --port 8000 --reload
 ```
 
-**Next.js Frontend** (localhost:3000) — *See installation guide*
+**Next.js Frontend** (localhost:3000) — _See installation guide_
+
 ```bash
 cd frontend && npm install && npm run dev
 ```
@@ -293,6 +305,7 @@ Input: node_features [N, F], edge_index [2, E]
 ## 📦 Installation
 
 ### Prerequisites
+
 - Python 3.10+
 - pip or conda
 - GPU (CUDA 12.1+) recommended, CPU supported
@@ -328,6 +341,7 @@ python -c "import torch, torch_geometric; print(f'PyTorch: {torch.__version__}, 
 ```
 
 Expected output:
+
 ```
 PyTorch: 2.1.2, PyG: 2.4.0
 ```
@@ -404,6 +418,7 @@ streamlit run src/streamlit_app/app.py
 Open browser → http://localhost:8501
 
 **5 Pages:**
+
 1. **Graph Explorer**: Dataset statistics & structure
 2. **Link Prediction**: Predict links & explain predictions
 3. **Results Dashboard**: Model comparisons
@@ -419,11 +434,13 @@ python -m uvicorn src.backend.app:app --host 0.0.0.0 --port 8000
 Example requests:
 
 **Get Dataset Info**
+
 ```bash
 curl -X GET http://localhost:8000/dataset/amazon_photo
 ```
 
 **Predict Link Probability**
+
 ```bash
 curl -X POST http://localhost:8000/predict/link \
   -H "Content-Type: application/json" \
@@ -431,6 +448,7 @@ curl -X POST http://localhost:8000/predict/link \
 ```
 
 **Get Results**
+
 ```bash
 curl -X GET http://localhost:8000/results/metrics
 ```
@@ -542,6 +560,7 @@ docker-compose -f docker/docker-compose.yml up
 ```
 
 Services:
+
 - Backend API: http://localhost:8000
 - Streamlit: http://localhost:8501
 - Redis cache: localhost:6379
@@ -549,6 +568,7 @@ Services:
 ### Deploy to Cloud
 
 See [Deployment Guide](docs/guides/deployment.md) for:
+
 - Render (Backend)
 - Vercel (Frontend)
 - HuggingFace (Model Hub)
@@ -559,14 +579,15 @@ See [Deployment Guide](docs/guides/deployment.md) for:
 
 On Amazon Photo target domain (50 support samples):
 
-| Model | ROC-AUC | PR-AUC | F1-Score | Notes |
-|-------|---------|--------|----------|-------|
-| Random Baseline | 0.500 | 0.200 | N/A | | 
-| GraphSAGE (no pretrain) | 0.652 | 0.421 | 0.543 | No transfer |
-| Pretrained → Adapter | 0.782 | 0.621 | 0.698 | W/o MAML |
+| Model                     | ROC-AUC   | PR-AUC    | F1-Score  | Notes       |
+| ------------------------- | --------- | --------- | --------- | ----------- |
+| Random Baseline           | 0.500     | 0.200     | N/A       |             |
+| GraphSAGE (no pretrain)   | 0.652     | 0.421     | 0.543     | No transfer |
+| Pretrained → Adapter      | 0.782     | 0.621     | 0.698     | W/o MAML    |
 | **Full System (w/ MAML)** | **0.851** | **0.743** | **0.796** | ✅ **SOTA** |
 
 Training time:
+
 - Pretraining: 3 hrs (GPU V100)
 - Meta-learning: 1 hr
 - Fine-tuning: 15 min
@@ -598,7 +619,7 @@ MIT License — see [LICENSE](LICENSE) file.
 
 - **Issues & Bugs**: [GitHub Issues](https://github.com/your-org/graph-foundation-model/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-org/graph-foundation-model/discussions)
-- **Email**: team@example.com
+- **Email**: sakthivelrajkumar2@gmail.com
 - **Documentation**: [Full Docs](https://graph-foundation.readthedocs.io)
 
 ---
@@ -621,6 +642,7 @@ If you use this code in your research, please cite:
 ## 🎓 Acknowledgments
 
 This project builds on decades of research in:
+
 - Graph Neural Networks (Kipf & Welling, 2016)
 - Graph Attention Networks (Veličković et al., 2017)
 - Model-Agnostic Meta-Learning (Finn et al., 2017)
