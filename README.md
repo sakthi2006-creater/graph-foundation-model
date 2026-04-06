@@ -629,11 +629,11 @@ MIT License — see [LICENSE](LICENSE) file.
 If you use this code in your research, please cite:
 
 ```bibtex
-@software{graph_foundation_2024,
-  title = {Graph Foundation Model for Cross-Domain Link Prediction with Few-Shot Meta-Learning},
-  author = {Graph Foundation Team},
-  year = {2024},
-  url = {https://github.com/your-org/graph-foundation-model}
+@software{graph_foundation_2026,
+  title = {Graph Foundation Model for Cross-Domain Link Prediction},
+  author = {Sakthivel Rajkumar},
+  year = {2026},
+  url = {https://github.com/sakthi2006-creater/graph-foundation-model}
 }
 ```
 
