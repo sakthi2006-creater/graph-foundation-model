@@ -1,0 +1,35 @@
+# FILE: requirements.txt
+# Core ML framework and graph libraries
+torch
+torchvision
+torchaudio
+torch-geometric
+
+# Data processing and scientific computing
+numpy
+pandas
+scipy
+networkx
+scikit-learn
+pyyaml
+
+# Training, logging, CLI
+tqdm
+python-dotenv
+wandb
+
+# Visualization
+plotly
+matplotlib
+
+# Serving and API
+fastapi
+uvicorn[standard]
+pydantic
+
+# App and tooling
+loguru
+streamlit
+pytest
+ruff
+jupyterlab

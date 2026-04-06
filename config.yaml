@@ -1,0 +1,344 @@
+################################################################################
+# GRAPH FOUNDATION MODEL FOR CROSS-DOMAIN LINK PREDICTION
+# Production Configuration - All Hyperparameters Documented
+################################################################################
+
+# ============================================================================
+# GLOBAL SETTINGS
+# ============================================================================
+
+# Random seed for reproducibility across all frameworks
+seed: 42
+
+# Device: 'auto' (auto-detect GPU), 'cuda', 'cpu', or 'cuda:0'
+device: auto
+
+# ============================================================================
+# DATA PIPELINE CONFIGURATION
+# ============================================================================
+
+data:
+  # Local cache directory for downloaded datasets
+  cache_dir: data/cache
+  
+  # Number of retries for failed downloads before fallback to synthetic
+  download_retries: 3
+  delay_between_retries_seconds: 5
+  
+  # Source domains for pretraining (cross-domain transfer learning)
+  source_domains:
+    - cora              # Citation network (1,433 features)
+    - pubmed            # Biomedical citations (500 features)
+    - citeseer          # Research paper citations (3,703 features)
+    - karate_club       # Social network (34 nodes, classic benchmark)
+    - amazon_computers  # E-commerce co-purchase graph
+  
+  # Target domain for few-shot fine-tuning (unseen during pretraining)
+  target_domain: amazon_photo
+  
+  # Edge split strategy: (train% / val% / test%)
+  split:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+  
+  # Negative sampling for link prediction
+  negative_sampling:
+    strategy: degree_weighted  # Options: degree_weighted, uniform, random_walk
+    num_negative_per_positive: 1
+    random_seed: 42
+  
+  # Node feature normalization
+  normalization:
+    enabled: true
+    zero_mean: true
+    unit_variance: true
+    eps: 1e-8
+
+# ============================================================================
+# MODEL ARCHITECTURE CONFIGURATION
+# ============================================================================
+
+model:
+  # Foundation Model: Graph Transformer (GAT-based)
+  foundation:
+    # Embedding dimension for all layers
+    hidden_dim: 128
+    
+    # Number of GraphTransformerLayers
+    num_layers: 4
+    
+    # Multi-head attention configuration
+    num_heads: 8
+    
+    # Dropout applied to node features between layers
+    dropout: 0.10
+    
+    # Temperature scaling for attention weights
+    attention_temperature: 0.5
+    
+    # Edge dropout for regularization
+    edge_dropout: 0.1
+    
+    # Laplacian positional encoding dimension
+    # (fallback to Rotary PE if Laplacian fails)
+    laplacian_pe_dim: 16
+    
+    # Rotary positional encoding dimension (fallback)
+    rotary_pe_dim: 16
+    
+    # Link prediction MLP hidden dimension
+    link_prediction_mlp_dim: 256
+    
+    # Node pooling: 'mean', 'sum', 'max'
+    pooling_strategy: mean
+    
+    # Residual gating for each layer
+    residual_gating: true
+  
+  # Adapter module for few-shot fine-tuning
+  # (inserted between encoder and link predictor)
+  adapter:
+    enabled: true
+    
+    # Bottleneck: hidden_dim -> bottleneck_dim -> hidden_dim
+    bottleneck_dim: 64
+    
+    # During fine-tuning, only update adapter weights
+    freeze_encoder: true
+    freeze_link_predictor: true
+  
+  # Baseline model: GraphSAGE (for comparison)
+  baseline:
+    graphsage:
+      # Number of SAGEConv layers
+      num_layers: 3
+      
+      # Hidden dimensions per layer
+      hidden_dims: [128, 128, 128]
+      
+      # Dropout rate
+      dropout: 0.3
+      
+      # Aggregator: 'mean', 'lstm', 'pool'
+      aggregator: mean
+
+# ============================================================================
+# TRAINING CONFIGURATION
+# ============================================================================
+
+training:
+  # Batch size for edge-level training
+  batch_size: 512
+  
+  # Maximum training epochs (can be overridden per stage)
+  max_epochs: 50
+  
+  # Gradient clipping norm
+  gradient_clip_norm: 1.0
+  
+  # Gradient accumulation steps (effective_bs = batch_size * accumulate_steps)
+  accumulate_steps: 4
+  
+  # Mixed precision training (torch.cuda.amp)
+  mixed_precision: true
+  
+  # Checkpoint directory
+  checkpoint_dir: checkpoints
+  
+  # Save checkpoint every N epochs
+  save_every_n_epochs: 5
+
+# ============================================================================
+# PRETRAINING (MASKED EDGE PREDICTION)
+# ============================================================================
+
+pretraining:
+  # Fraction of edges to mask during pretraining
+  mask_edge_rate: 0.20
+  
+  # Loss function
+  objective: binary_cross_entropy_with_logits
+  
+  # Training duration
+  num_epochs: 20
+  
+  # Optimizer settings for pretraining
+  learning_rate: 1e-4
+  weight_decay: 1e-4
+
+# ============================================================================
+# META-LEARNING (MAML - MODEL AGNOSTIC META LEARNING)
+# ============================================================================
+
+meta_learning:
+  enabled: true
+  
+  # Number of tasks per meta-batch
+  task_batch_size: 4
+  
+  # Inner loop gradient steps per task
+  inner_steps: 5
+  
+  # Inner loop learning rate (per-task adaptation)
+  inner_lr: 1e-3
+  
+  # Outer loop learning rate (meta-update)
+  outer_lr: 1e-4
+  
+  # Use first-order MAML if memory exceeds limit (fallback)
+  first_order_fallback: true
+  
+  # Max tasks per epoch to prevent OOM
+  max_tasks_per_epoch: 8
+  
+  # Validate on separate task set
+  validation_task_sets: 2
+
+# ============================================================================
+# FINE-TUNING (FEW-SHOT ON TARGET DOMAIN)
+# ============================================================================
+
+fine_tuning:
+  # Number of support samples from target domain
+  support_size: 50
+  
+  # Fine-tuning duration
+  num_epochs: 15
+  
+  # Learning rate (lower for stable fine-tuning)
+  learning_rate: 5e-5
+  weight_decay: 1e-5
+  
+  # Class-balanced loss weighting
+  class_balance: true
+  
+  # Only update adapter weights; freeze encoder and predictor
+  adapter_only: true
+  
+  # Optional: curriculum learning (increase support size gradually)
+  curriculum_learning: false
+
+# ============================================================================
+# OPTIMIZER & SCHEDULER
+# ============================================================================
+
+optimizer:
+  # Type: 'AdamW', 'Adam', 'SGD'
+  type: AdamW
+  
+  # Learning rate
+  lr: 1e-4
+  
+  # L2 regularization
+  weight_decay: 1e-4
+  
+  # Gradient clipping
+  clip_by_norm: 1.0
+
+scheduler:
+  # Type: 'CosineAnnealingLR', 'StepLR', 'ExponentialLR', 'ReduceLROnPlateau'
+  type: CosineAnnealingLR
+  
+  # Total iterations for cosine annealing
+  T_max: 50
+  
+  # Minimum learning rate
+  eta_min: 1e-6
+
+# ============================================================================
+# EVALUATION CONFIGURATION
+# ============================================================================
+
+evaluation:
+  # Metrics to compute
+  metrics:
+    - roc_auc
+    - average_precision
+    - accuracy
+    - f1_score
+    - mcc  # Matthews correlation coefficient
+  
+  # Threshold selection: 'youden' (J-statistic), 'f1', 'balanced'
+  threshold_selection: youden
+  
+  # Generate and save plots
+  save_plots: true
+  plot_formats: ['png', 'html']
+  
+  # Output directory for results
+  output_dir: evaluation/results
+
+# ============================================================================
+# LOGGING & TRACKING
+# ============================================================================
+
+logging:
+  # Use Weights & Biases for experiment tracking
+  use_wandb: true
+  
+  # W&B project and entity
+  wandb_project: graph-foundation-link-prediction
+  wandb_entity: null  # Set to your username if using W&B
+  
+  # CSV log fallback path (if W&B unavailable)
+  csv_log_path: logs/training.csv
+  
+  # Log metrics every N steps
+  log_interval_steps: 50
+  
+  # Also print to console
+  console_output: true
+  
+  # Log device info at startup
+  log_device_info: true
+
+# ============================================================================
+# WEB APPLICATIONS
+# ============================================================================
+
+app:
+  streamlit:
+    # Streamlit dashboard configuration
+    host: 0.0.0.0
+    port: 8501
+    theme: dark
+    logger_level: info
+  
+  fastapi:
+    # FastAPI backend configuration
+    host: 0.0.0.0
+    port: 8000
+    workers: 4
+    reload: false  # Set to true for development
+    logger_level: info
+  
+  nextjs:
+    # Next.js frontend configuration
+    api_url: http://localhost:8000
+    port: 3000
+    environment: production  # 'development' or 'production'
+
+# ============================================================================
+# DEPLOYMENT
+# ============================================================================
+
+deployment:
+  docker:
+    backend_image: graph-foundation-backend:latest
+    frontend_image: graph-foundation-frontend:latest
+    redis_image: redis:7.0-alpine
+  
+  ci:
+    # GitHub Actions pipeline
+    lint: true
+    test: true
+    docker_build: true
+    deploy_frontend: true
+    deploy_backend: true
+  
+  # Cloud deployment targets (Render, Railway, Vercel, HuggingFace)
+  cloud:
+    backend_platform: render  # 'render', 'railway', 'aws_ecs'
+    frontend_platform: vercel  # 'vercel', 'netlify'
+    model_hub: huggingface  # 'huggingface', 'model_zoo'
